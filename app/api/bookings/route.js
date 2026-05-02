@@ -1,4 +1,7 @@
 import { projectOptionsByAudience, timeSlots } from "../../../data/content";
+import { getSql } from "../../../lib/db";
+
+export const runtime = "nodejs";
 
 function validateBooking(values) {
   const errors = {};
@@ -91,20 +94,64 @@ export async function POST(request) {
     return Response.json({ message: "预约信息需要修正。", errors }, { status: 400 });
   }
 
-  return Response.json(
-    {
-      ok: true,
-      message: "预约信息已通过接口校验。后续可在这里接入 Supabase 写入逻辑。",
-      booking: {
-        serviceMode: values.serviceMode,
-        date: values.date,
-        time: values.time,
-        audience: values.audience,
-        project: values.project,
-        adultCount: Number(values.adultCount || 0),
-        childCount: Number(values.childCount || 0),
+  const adultCount = Number(values.adultCount || 0);
+  const childCount = Number(values.childCount || 0);
+
+  try {
+    const sql = getSql();
+    const [booking] = await sql`
+      insert into public.bookings (
+        contact_name,
+        phone,
+        service_mode,
+        service_address,
+        booking_date,
+        time_slot,
+        audience,
+        project,
+        adult_count,
+        child_count,
+        notes,
+        raw_payload
+      ) values (
+        ${values.name.trim()},
+        ${(values.phone || "").trim()},
+        ${values.serviceMode},
+        ${values.serviceMode === "home" ? values.address.trim() : null},
+        ${values.date},
+        ${values.time},
+        ${values.audience},
+        ${values.project},
+        ${adultCount},
+        ${childCount},
+        ${values.notes?.trim() || null},
+        ${sql.json({
+          ...values,
+          name: values.name.trim(),
+          phone: (values.phone || "").trim(),
+          adultCount,
+          childCount,
+        })}
+      )
+      returning id, status, created_at
+    `;
+
+    return Response.json(
+      {
+        ok: true,
+        message: "预约已提交，我们会尽快联系你确认。",
+        booking,
       },
-    },
-    { status: 201 },
-  );
+      { status: 201 },
+    );
+  } catch (error) {
+    console.error("Failed to create booking", error);
+
+    return Response.json(
+      {
+        message: "预约提交失败，请稍后再试。",
+      },
+      { status: 500 },
+    );
+  }
 }
