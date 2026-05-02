@@ -121,6 +121,8 @@ export const prepNotices = [
   },
 ];
 
+export const timeSlots = ["10:00 - 12:00", "13:00 - 15:00", "15:30 - 17:30", "18:30 - 20:30"];
+
 export const projectOptionsByAudience = {
   成人: ["成人美甲", "成人发型妆造", "成人汉服造型"],
   儿童: ["儿童彩绘", "儿童美甲/发型", "儿童汉服造型"],

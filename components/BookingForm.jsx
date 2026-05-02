@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { projectOptionsByAudience } from "../data/content";
+import { projectOptionsByAudience, timeSlots } from "../data/content";
 import Icon from "./Icon";
 
 function toLocalDateValue(date) {
@@ -9,6 +9,30 @@ function toLocalDateValue(date) {
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
+}
+
+function getSlotStartMinutes(slot) {
+  const [hours, minutes] = slot.split(" - ")[0].split(":").map(Number);
+  return hours * 60 + minutes;
+}
+
+function getSlotEndMinutes(slot) {
+  const [hours, minutes] = slot.split(" - ")[1].split(":").map(Number);
+  return hours * 60 + minutes;
+}
+
+function getDefaultTimeSlot(date) {
+  const target = new Date(date);
+  target.setHours(target.getHours() + 2);
+  const targetMinutes = target.getHours() * 60 + target.getMinutes();
+
+  return (
+    timeSlots.find((slot) => {
+      const start = getSlotStartMinutes(slot);
+      const end = getSlotEndMinutes(slot);
+      return targetMinutes <= end || targetMinutes <= start;
+    }) || timeSlots[timeSlots.length - 1]
+  );
 }
 
 const initialForm = {
@@ -114,7 +138,14 @@ export default function BookingForm() {
   useEffect(() => {
     const currentDate = new Date();
     currentDate.setHours(0, 0, 0, 0);
-    setMinDate(toLocalDateValue(currentDate));
+    const today = toLocalDateValue(currentDate);
+
+    setMinDate(today);
+    setValues((current) => ({
+      ...current,
+      date: current.date || today,
+      time: current.time || getDefaultTimeSlot(new Date()),
+    }));
   }, []);
 
   function updateField(name, value) {
@@ -308,10 +339,9 @@ export default function BookingForm() {
             onChange={(event) => updateField("time", event.target.value)}
           >
             <option value="">请选择时间段</option>
-            <option>10:00 - 12:00</option>
-            <option>13:00 - 15:00</option>
-            <option>15:30 - 17:30</option>
-            <option>18:30 - 20:30</option>
+            {timeSlots.map((slot) => (
+              <option key={slot}>{slot}</option>
+            ))}
           </select>
           <p className="error">{errors.time}</p>
         </div>

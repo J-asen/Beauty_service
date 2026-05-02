@@ -1,4 +1,4 @@
-import { projectOptionsByAudience } from "../../../data/content";
+import { projectOptionsByAudience, timeSlots } from "../../../data/content";
 
 function validateBooking(values) {
   const errors = {};
@@ -32,7 +32,7 @@ function validateBooking(values) {
     }
   }
 
-  if (!values.time) {
+  if (!values.time || !timeSlots.includes(values.time)) {
     errors.time = "请选择时间段。";
   }
 
